@@ -1,0 +1,37 @@
+#include "stdafx.h"
+#include "vms_products.h"
+#include "vending_machine_system.h"
+
+
+//User can pass in the machines filename and products filename as command line arguments.
+//If supplied, the order must be machines filename followed by products filename.
+//If not supplied, the default filenames are machines.txt and products.txt.
+//
+int _tmain(int argc, _TCHAR* argv[])
+{
+	VENDING_MACHINE_SYSTEM vms;
+
+	//Check if user supplies the machines filename and products filename as
+	//command line arguments.
+	bool result = false;
+	if (argc > 2) 
+	{
+		//The machines filename and products filename are supplied.
+		result = vms.Initialize(argv[1], argv[2]);
+	}
+	else 
+	{
+		result = vms.Initialize(NULL, NULL);
+	}
+
+	if (!result) 
+	{
+		return -1;
+	}
+
+	vms.Run();
+
+	vms.GenerateReportFile();
+
+	return 0;
+}

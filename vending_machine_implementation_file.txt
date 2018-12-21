@@ -1,0 +1,1453 @@
+#include "stdafx.h"
+#include "vms_products.h"
+#include "vending_machine_system.h"
+#include "vending_machine.h"
+
+
+//==============================================================================
+//This class represents a sale item at a Vending Machine.
+//==============================================================================
+VM_SALE_ITEM::VM_SALE_ITEM(const char* pCode, int id, int quantity)
+{
+	m_Code = pCode;
+	m_Id = id;
+	m_InitialQuantity = quantity;
+	m_CurrentQuantity = quantity;
+}
+
+VM_SALE_ITEM::~VM_SALE_ITEM()
+{
+}
+
+const char* VM_SALE_ITEM::GetCode() const
+{
+	return m_Code.c_str();
+}
+
+int VM_SALE_ITEM::GetId() const
+{
+	return m_Id;
+}
+
+int VM_SALE_ITEM::GetInitialQuantity() const
+{
+	return m_InitialQuantity;
+}
+
+int VM_SALE_ITEM::GetCurrentQuantity() const
+{
+	return m_CurrentQuantity;
+}
+
+void VM_SALE_ITEM::SetCurrentQuantity(int quantity)
+{
+	m_CurrentQuantity = quantity;
+}
+
+void VM_SALE_ITEM::PrintAsAvailable(VENDING_MACHINE_SYSTEM* pVMS)
+{
+	VMS_PRODUCT_ITEM* pProdItem = pVMS->GetVmsProducts().FindProductItemById(m_Id);
+
+	if (pProdItem)
+	{
+		cout << "    " << setw(4) << right << m_Code << "    " << setw(5) << right << pProdItem->GetPrice()
+				<< "    " << setw(30) << left << pProdItem->GetDescription() << endl;
+	}
+	else
+	{
+		cout << "    " << setw(4) << right << m_Code << "    " << setw(5) << right << "ERROR"
+				<< "    " << setw(30) << left << "ERROR" << endl;
+	}
+
+}
+
+//static
+void VM_SALE_ITEM::PrintReportHeader(ofstream& ofsReports)
+{
+	ofsReports << "Code      Id    Description                       Initial    Current" << endl;
+	ofsReports << "----    ----    ------------------------------    -------    -------" << endl;
+}
+
+void VM_SALE_ITEM::PrintAsReport(VENDING_MACHINE_SYSTEM* pVMS, ofstream& ofsReports)
+{
+	VMS_PRODUCT_ITEM* pProdItem = pVMS->GetVmsProducts().FindProductItemById(m_Id);
+	if (pProdItem)
+	{
+		ofsReports << setw(4) << right << m_Code << "    " << setw(4) << right << m_Id << "    "
+			<< setw(30) << left << pProdItem->GetDescription() << "    "
+			<< setw(5) << right << m_InitialQuantity << "      "
+			<< setw(5) << right << m_CurrentQuantity << endl;
+	}
+	else
+	{
+		ofsReports << setw(4) << right << m_Code << "    " << setw(4) << right << m_Id << "    "
+			<< setw(30) << left << "ERROR" << "    "
+			<< setw(5) << right << m_InitialQuantity << "      "
+			<< setw(5) << right << m_CurrentQuantity << endl;
+	}
+}
+
+
+//==============================================================================
+//Base class for a Vending Machine report item.
+//==============================================================================
+VM_REPORT_ITEM::~VM_REPORT_ITEM()
+{
+}
+
+int VM_REPORT_ITEM::GetCost() const
+{
+	return m_Cost;
+}
+
+VM_REPORT_ITEM::VM_REPORT_ITEM()
+{
+	m_TransId = 0;
+	m_Code = "";
+	m_Cost = 0;
+
+	m_Paid = 0;
+}
+
+
+//==============================================================================
+//This class represents a report item for a Vending Machine model 100A.
+//==============================================================================
+VM100A_REPORT_ITEM::VM100A_REPORT_ITEM()
+	: VM_REPORT_ITEM()
+{
+	m_ChangeQuarters = 0;
+	m_ChangeDimes = 0;
+	m_ChangeNickels = 0;
+}
+
+VM100A_REPORT_ITEM::~VM100A_REPORT_ITEM()
+{
+}
+
+void VM100A_REPORT_ITEM::Initialize(int transId, const char* pCode, int cost, int paid,
+									int changeQ, int changeD, int changeN)
+{
+	m_TransId = transId;
+	m_Code = pCode;
+	m_Cost = cost;
+
+	m_Paid = paid;
+
+	m_ChangeQuarters = changeQ;
+	m_ChangeDimes = changeD;
+	m_ChangeNickels = changeN;
+}
+
+//static
+void VM100A_REPORT_ITEM::PrintHeader(ofstream& ofsReports)
+{
+	ofsReports << "Trans    Item    Cost    Paid ($, Q, D, N)    Changes (Q, D, N)" << endl;
+	ofsReports << "-----    ----    ----    -----------------    -----------------" << endl;
+}
+
+void VM100A_REPORT_ITEM::Print(ofstream& ofsReports)
+{
+	//ofsReports << "    1      1B      35     N00 (N, 0, 0, 0)         65 (2, 1, 1)" << endl;
+	int changes = m_ChangeQuarters * 25 + m_ChangeDimes * 10 + m_ChangeNickels * 5;
+	ofsReports << right << setw(5) << m_TransId << setw(8) << m_Code << setw(8) << m_Cost
+		<< setw(8) << m_Paid << " (" << (m_Paid / 100) << ", 0, 0, 0)"
+		<< setw(11) << changes
+		<< " (" << m_ChangeQuarters << ", " << m_ChangeDimes << ", " << m_ChangeNickels << ")" << endl;
+}
+
+//==============================================================================
+//This class represents a report item for a Vending Machine model 100B.
+//==============================================================================
+VM100B_REPORT_ITEM::VM100B_REPORT_ITEM()
+	: VM_REPORT_ITEM()
+{
+	m_ChangeQuarters = 0;
+	m_ChangeDimes = 0;
+	m_ChangeNickels = 0;
+}
+
+VM100B_REPORT_ITEM::~VM100B_REPORT_ITEM()
+{
+}
+
+void VM100B_REPORT_ITEM::Initialize(int transId, const char* pCode, int cost, int paid,
+	int changeQ, int changeD, int changeN)
+{
+	m_TransId = transId;
+	m_Code = pCode;
+	m_Cost = cost;
+
+	m_Paid = paid;
+
+	m_ChangeQuarters = changeQ;
+	m_ChangeDimes = changeD;
+	m_ChangeNickels = changeN;
+}
+
+//static
+void VM100B_REPORT_ITEM::PrintHeader(ofstream& ofsReports)
+{
+	ofsReports << "Trans    Item    Cost    Paid ($, Q, D, N)    Changes (Q, D, N)" << endl;
+	ofsReports << "-----    ----    ----    -----------------    -----------------" << endl;
+}
+
+void VM100B_REPORT_ITEM::Print(ofstream& ofsReports)
+{
+	//ofsReports << "    1      1B      35     N00 (N, 0, 0, 0)         65 (2, 1, 1)" << endl;
+	int changes = m_ChangeQuarters * 25 + m_ChangeDimes * 10 + m_ChangeNickels * 5;
+	ofsReports << right << setw(5) << m_TransId << setw(8) << m_Code << setw(8) << m_Cost
+		<< setw(8) << m_Paid << " (" << (m_Paid / 100) << ", 0, 0, 0)"
+		<< setw(11) << changes
+		<< " (" << m_ChangeQuarters << ", " << m_ChangeDimes << ", " << m_ChangeNickels << ")" << endl;
+}
+
+
+
+
+
+
+//==============================================================================
+//This class represents a report item for a Vending Machine model 100C.
+//==============================================================================
+VM100C_REPORT_ITEM::VM100C_REPORT_ITEM()
+	: VM_REPORT_ITEM()
+{
+	m_CCNLast4 = "";
+}
+
+VM100C_REPORT_ITEM::~VM100C_REPORT_ITEM()
+{
+}
+
+void VM100C_REPORT_ITEM::Initialize(int transId, const char* pCode, int cost, int paid,
+									const char* pCCNLast4)
+{
+	m_TransId = transId;
+	m_Code = pCode;
+	m_Cost = cost;
+
+	m_Paid = paid;
+	m_CCNLast4 = pCCNLast4;
+}
+
+//static
+void VM100C_REPORT_ITEM::PrintHeader(ofstream& ofsReports)
+{
+	ofsReports << "Trans    Item    Cost    Paid    Last 4 digits of credit card" << endl;
+	ofsReports << "-----    ----    ----    ----    ----------------------------" << endl;
+}
+
+void VM100C_REPORT_ITEM::Print(ofstream& ofsReports)
+{
+	//ofsReports << "    1      1B      35     100    1234" << endl;
+	ofsReports << right << setw(5) << m_TransId << setw(8) << m_Code << setw(8) << m_Cost
+		<< setw(8) << m_Paid << setw(8) << m_CCNLast4 << endl;
+}
+
+
+//==============================================================================
+//Base class for various models of Vending Machine.
+//==============================================================================
+//static
+VENDING_MACHINE* VENDING_MACHINE::CreateVendingMachine(const char* pModel, int index,
+													   VENDING_MACHINE_SYSTEM* pVMS)
+{
+	VENDING_MACHINE* pVM = NULL;
+	if (!pModel)
+	{
+		return NULL;
+	}
+
+	string vmModel = pModel;
+	string vmName = pModel;
+	vmName += to_string(index);
+
+	if (vmModel == "100A")
+	{
+		pVM = new VENDING_MACHINE_100A(pModel, vmName.c_str(), pVMS);
+	}
+	else if (vmModel == "100C")
+	{
+		pVM = new VENDING_MACHINE_100C(pModel, vmName.c_str(), pVMS);
+	}
+	else
+	{
+		cout << "ERROR: Unsupported vending machine model " << vmModel << endl;
+	}
+
+	return pVM;
+}
+
+VENDING_MACHINE::~VENDING_MACHINE()
+{
+	//Delete all VM_SALE_ITEM objects in the vector.
+	unsigned int i = 0;
+	for (i = 0; i < m_SaleItemArr.size(); i++)
+	{
+		delete (m_SaleItemArr[i]);
+	}
+	m_SaleItemArr.clear();
+
+	//Delete all VM_REPORT_ITEM objects in the vector.
+	for (i = 0; i < m_ReportItemArr.size(); i++)
+	{
+		delete m_ReportItemArr[i];
+	}
+
+	m_ReportItemArr.clear();
+}
+
+const char* VENDING_MACHINE::GetName() const
+{
+	return m_Name.c_str();
+}
+
+bool VENDING_MACHINE::Initialize(ifstream& ifsMachines, int& lineNo)
+{
+	//1. Read the coins (Q, D, N).
+	// cout << "Line " << setw(3) << right << lineNo << " --> ";
+	string strLine;
+	if (!getline(ifsMachines, strLine))
+	{
+		cout << "ERROR: Reached the end-of-file while trying to read Coins (Q D N)." << endl;
+		return false;
+	}
+	// cout << strLine << endl;
+	lineNo++;
+
+	istringstream issCoins(strLine);
+	issCoins >> m_InitialQuarters;
+	issCoins >> m_InitialDimes;
+	issCoins >> m_InitialNickels;
+
+	m_CurrentQuarters = m_InitialQuarters;
+	m_CurrentDimes = m_InitialDimes;
+	m_CurrentNickels = m_InitialNickels;
+
+	//2. Read the count of sale items.
+	// cout << "Line " << setw(3) << right << lineNo << " --> ";
+	strLine.clear();
+	if (!getline(ifsMachines, strLine))
+	{
+		cout << "ERROR: Reached the end-of-file while trying to read Count of Sale Items." << endl;
+		return false;
+	}
+	// cout << strLine << endl;
+	lineNo++;
+
+	int saleItemCount = 0;
+	istringstream issSaleItemCount(strLine);
+	issSaleItemCount >> saleItemCount;
+
+	int i = 0;
+	for (i = 0; i < saleItemCount; i++)
+	{
+		// cout << "Line " << setw(3) << right << lineNo << " --> ";
+		strLine.clear();
+		if (!getline(ifsMachines, strLine))
+		{
+			cout << "ERROR: Reached the end-of-file while trying to read a Sale Item." << endl;
+			return false;
+		}
+		// cout << strLine << endl;
+		lineNo++;
+
+        string vmsiCode;
+		int vmsiId = 0;
+		int vmsiQuantity = 0;
+
+		istringstream issVMSI(strLine);
+		issVMSI >> vmsiCode;
+        issVMSI >> vmsiId;
+        issVMSI >> vmsiQuantity;
+
+        if ((vmsiCode.length() > 0) && (vmsiId > 0) && (vmsiQuantity > 0))
+		{
+            //Need to check with the VMS_PRODUCTS to verify there is sufficient quantity.
+            VMS_PRODUCT_ITEM* pVmsProdItem = m_pVMS->GetVmsProducts().FindProductItemById(vmsiId);
+            if (pVmsProdItem != NULL)
+			{
+                int vmsProdQuantity = pVmsProdItem->GetQuantity();
+
+				if (vmsiQuantity <= vmsProdQuantity)
+				{
+                    //There is enough quantity of this item to be placed in this Vending Machine.
+                    //No need to make any adjustment.
+			    }
+			    else
+				{
+                    //There is enough quantity of this item to be placed in this Vending Machine.
+                    //We can only serve the quantity that is still available.
+				//	cout << "    WARNING: There is not enough quantity for item Id " << vmsiId << "." << endl;
+				//	cout << "    Requested quantity: " << vmsiQuantity << ". Available quantity: " << vmsProdQuantity << endl;
+				//	cout << "    Only the available quantity will be stocked in this vending machine." << endl;
+                    vmsiQuantity = vmsProdQuantity;
+			    }
+
+			   // cout << "    Creating VM_SALE_ITEM object with code=" << vmsiCode
+				//	<< ", id=" << vmsiId << ", quantity=" << vmsiQuantity << "..." << endl;
+			    VM_SALE_ITEM* pVMSaleItem = new VM_SALE_ITEM(vmsiCode.c_str(), vmsiId, vmsiQuantity);
+			    if (pVMSaleItem)
+				{
+                    this->m_SaleItemArr.push_back(pVMSaleItem);
+                    //Update the quantity in the VMS_PRODUCTS.
+                    pVmsProdItem->SetQuantity(vmsProdQuantity - vmsiQuantity);
+				}
+				else
+				{
+			        cout << "    ERROR: Failed to create VM_SALE_ITEM object with code=" << vmsiCode
+						<< ", id=" << vmsiId << ", quantity=" << vmsiQuantity << "." << endl;
+				}
+		    }
+			else
+			{
+			        cout << "    ERROR: There is no VMS Product Item with ID "
+						<< vmsiId << " available in the list of Products." << endl;
+			}
+		}
+		else
+		{
+	        cout << "ERROR: One or more of the Sale Item attributes are invalid: code="
+				<< vmsiCode << ", id=" << vmsiId << ", quantity=" << vmsiQuantity << "." << endl;
+		}
+	}
+
+	return true;
+}
+
+VENDING_MACHINE::VENDING_MACHINE(const char* pModel, const char* pName, VENDING_MACHINE_SYSTEM* pVMS)
+{
+	m_Model = pModel;
+	m_Name = pName;
+	m_pVMS = pVMS;
+
+	//Keep initial coins for reporting purposes.
+	m_InitialDollars = 0;
+	m_InitialQuarters = 0;
+	m_InitialDimes = 0;
+	m_InitialNickels = 0;
+
+	//Available bills and coins, updated with each successful purchase.
+	m_CurrentDollars = 0;
+	m_CurrentQuarters = 0;
+	m_CurrentDimes = 0;
+	m_CurrentNickels = 0;
+
+	m_SaleItemArr.clear();
+	m_ReportItemArr.clear();
+}
+
+void VENDING_MACHINE::PrintAvailableSaleItems()
+{
+	cout << endl;
+	cout << "Available items:" << endl;
+	cout << "    Code    Price    Description" << endl;
+	cout << "    ----    -----    ------------------------------" << endl;
+
+	unsigned int i = 0;
+	for (i = 0; i < m_SaleItemArr.size(); i++)
+	{
+		m_SaleItemArr[i]->PrintAsAvailable(m_pVMS);
+	}
+	cout << endl;
+}
+
+VM_SALE_ITEM* VENDING_MACHINE::FindVmSaleItemByCode(const string& code)
+{
+	VM_SALE_ITEM* pVmSaleItem = NULL;
+	unsigned int i = 0;
+	for (i = 0; i < m_SaleItemArr.size(); i++)
+	{
+		if (code == m_SaleItemArr[i]->GetCode())
+		{
+			//Found it.
+			pVmSaleItem = m_SaleItemArr[i];
+			break;
+		}
+	}
+
+	return pVmSaleItem;
+}
+
+//==============================================================================
+//Vending Machine model 100A
+//==============================================================================
+VENDING_MACHINE_100A::VENDING_MACHINE_100A(const char* pModel, const char* pName,
+										   VENDING_MACHINE_SYSTEM* pVMS)
+	: VENDING_MACHINE(pModel, pName, pVMS)
+{
+}
+
+VENDING_MACHINE_100A::~VENDING_MACHINE_100A()
+{
+}
+
+// The ServeCustomer() function asks the user to select an item, checks if
+// the user enters 0, checks if they entered a valid selection number and letter,
+// checks if any is left of the item requested, implements the CollectPayment function
+// It also reduces the available inventory by one, if transaction is successful
+
+
+bool VENDING_MACHINE_100A::ServeCustomer() //
+{
+	bool result = false;
+	bool repeat = true;
+	do
+	{
+		cout << endl;
+		cout << "This machine accepts one-dollar bills only." << endl;
+
+		PrintAvailableSaleItems();
+
+		//Ask user to make a selection.
+		string selectedCode;
+		cout << "Select an item by entering the code or 0 to Cancel --> ";
+		cin >> selectedCode;
+
+		//Check for "0".
+		if (selectedCode == "0")
+		{
+			//User decides to cancel the purchase from this vending machine.
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		//User entered a non-zero code.
+		//Find the VM_SALE_ITEM object based on the code.
+		VM_SALE_ITEM* pSelectedVmSaleItem = FindVmSaleItemByCode(selectedCode);
+		if (pSelectedVmSaleItem == NULL)
+		{
+			cout << "ERROR: The code you entered is invalid. Please try again." << endl;
+			continue;
+		}
+
+		//User entered a valid product item code. Check if we have enough.
+		if (pSelectedVmSaleItem->GetCurrentQuantity() < 1)
+		{
+			//No, we don't have any more.
+			cout << "Sorry, the item you selected is either unavailable or sold out." << endl;
+			cout << "Please try another item." << endl;
+			continue;
+		}
+
+		//Yes, we still have some. Get the description and price information.
+		VMS_PRODUCT_ITEM* pVmsProductItem = m_pVMS->GetVmsProducts().FindProductItemById(
+			pSelectedVmSaleItem->GetId());
+		if (!pVmsProductItem)
+		{
+			cout << "Sorry, the item you selected cannot be found in the product inventory." << endl;
+			cout << "Please try another item." << endl;
+			continue;
+		}
+
+		cout << "You selected '" << pVmsProductItem->GetDescription() << "'." << endl;
+		cout << "The cost of this item is " << pVmsProductItem->GetPrice() << " cents." << endl;
+
+		//Get the payment.
+		int amountPaid = CollectPayment();
+		if (amountPaid == 0)
+		{
+			cout << "You chose to cancel your purchase." << endl;
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		cout << "You entered an amount of " << amountPaid << " cents." << endl;
+		cout << "Processing your purchase ..." << endl;
+
+		//Check there is enough payment.
+		if (pVmsProductItem->GetPrice() > amountPaid)
+		{
+			cout << "ERROR: You did not enter enough dollar bills." << endl;
+			cout << "This transaction will be canceled." << endl;
+			cout << "Please take back your dollar bill(s)." << endl;
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		//Calculate change (Q, D, N) to give back.
+		int requiredChange = 0;
+		int changeQs = 0;
+		int changeDs = 0;
+		int changeNs = 0;
+		bool hasEnoughChange = CalculateChange(pVmsProductItem->GetPrice(), amountPaid,
+			requiredChange, changeQs, changeDs, changeNs);
+		if (!hasEnoughChange)
+		{
+			cout << "Insufficient changes!" << endl;
+			cout << "Your transaction cannot be processed." << endl;
+			cout << "Please take back your dollar bill(s)." << endl;
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		cout << "Your change of " << requiredChange << " cents is given as:" << endl;
+		cout << "    quarter(s) : " << changeQs << endl;
+		cout << "    dime(s)    : " << changeDs << endl;
+		cout << "    nickel(s)  : " << changeNs << endl;
+		cout << "Thank you! Please take your item." << endl;
+
+		//Update the Dollar and coins after successful transaction.
+		m_CurrentDollars += amountPaid / 100;
+
+		m_CurrentQuarters -= changeQs;
+		m_CurrentDimes -= changeDs;
+		m_CurrentNickels -= changeNs;
+
+		//Need to update the sale item quantity (reduce by 1).
+		pSelectedVmSaleItem->SetCurrentQuantity(pSelectedVmSaleItem->GetCurrentQuantity() - 1);
+
+		//Create a VM100A_REPORT_ITEM object and put it in the ReportItem vector.
+		VM100A_REPORT_ITEM* pReportItem = new VM100A_REPORT_ITEM();
+		if (pReportItem)
+		{
+			int transId = m_ReportItemArr.size() + 1;
+			pReportItem->Initialize(transId, pSelectedVmSaleItem->GetCode(), pVmsProductItem->GetPrice()
+				, amountPaid, changeQs, changeDs, changeNs);
+			m_ReportItemArr.push_back(pReportItem);
+		}
+
+		//Exit the do...while loop to return control to the VENDING_MACHINE_SYSTEM object.
+		repeat = false;
+
+	} while (repeat);
+
+	return result;
+
+}
+
+void VENDING_MACHINE_100A::PrintReport(ofstream& ofsReports) // I left an ofstream in here, since you need it to generate the report.txt
+{
+	//Print the initial information.
+	ofsReports << "====================" << endl;
+	ofsReports << "Machine: " << m_Name << endl;
+
+	//Calculate initial balance.
+	int initialBalance = (25 * m_InitialQuarters) + (10 * m_InitialDimes) + (5 * m_InitialNickels);
+	ofsReports << "Initial Balance: $" << (initialBalance / 100) << "."
+		<< setw(2) << setfill('0') << (initialBalance % 100) << setfill(' ')
+		<< " (" << m_InitialDollars << " $, " << m_InitialQuarters << " Q, "
+		<< m_InitialDimes << " D, " << m_InitialNickels << " N)" << endl;
+	ofsReports << endl;
+
+	//Print the header for the report items.
+	VM100A_REPORT_ITEM::PrintHeader(ofsReports);
+
+	//Print the report items.
+	//Collect the total along the way.
+	int totalSale = 0;
+	unsigned int i = 0;
+	if (m_ReportItemArr.size() > 0)
+	{
+		for (i = 0; i < m_ReportItemArr.size(); i++)
+		{
+			totalSale = totalSale + m_ReportItemArr[i]->GetCost();
+			m_ReportItemArr[i]->Print(ofsReports);
+		}
+	}
+	else
+	{
+		ofsReports << "There is no transaction." << endl;
+	}
+	ofsReports << endl;
+
+	//Print the total sale/cost.
+	ofsReports << "Total Cost: " << setw(9) << right << totalSale << endl;
+	ofsReports << endl;
+
+	//Print the current information.
+	//Calculate current balance.
+	int currentBalance = (100 * m_CurrentDollars) + (25 * m_CurrentQuarters) +
+		(10 * m_CurrentDimes) + (5 * m_CurrentNickels);
+	ofsReports << "Current Balance: $" << (currentBalance / 100) << "."
+		<< setw(2) << setfill('0') << (currentBalance % 100) << setfill(' ')
+		<< " (" << m_CurrentDollars << " $, " << m_CurrentQuarters << " Q, "
+		<< m_CurrentDimes << " D, " << m_CurrentNickels << " N)" << endl;
+	ofsReports << endl;
+
+	//Print the header for the sale items.
+	VM_SALE_ITEM::PrintReportHeader(ofsReports);
+
+	//Print the sale items in report format.
+	if (m_SaleItemArr.size() > 0)
+	{
+		for (i = 0; i < m_SaleItemArr.size(); i++)
+		{
+			m_SaleItemArr[i]->PrintAsReport(m_pVMS, ofsReports);
+		}
+	}
+	else
+	{
+		ofsReports << "There is no item available for sale." << endl;
+	}
+	ofsReports << endl;
+}
+
+int VENDING_MACHINE_100A::CollectPayment() // Receives the input from the user
+{
+	int amountPaid = 0;
+
+	bool validPayment = true;
+	int oneBill = 0;
+	do
+	{
+		validPayment = true;
+		amountPaid = 0;
+		cout << "Insert your money in 100 cents amount, ending with 0." << endl;
+		cout << "Example: 100 0<E>, or 100 100 0<E>, or 100 100 100 0<E>, etc." << endl;
+		cout << "Insert your money --> ";
+		do
+		{
+			oneBill = 0;
+			cin >> oneBill;
+			//The amount must be 100 or 0.
+			if ((oneBill != 100) && (oneBill != 0))
+			{
+				cout << "ERROR: Only one-dollar bills are accepted." << endl;
+				cout << "Please try again." << endl;
+				validPayment = false;
+				continue;
+			}
+			amountPaid += oneBill;
+
+		} while ((oneBill != 0) && (validPayment != false));
+
+	} while (validPayment == false);
+
+	return amountPaid;
+}
+
+bool VENDING_MACHINE_100A::CalculateChange(int cost, int paid, int& requiredChange,
+										   int& changeQs, int& changeDs, int& changeNs) // Conduct function to produce change
+{
+	bool result = true;
+	int availableChange = (m_CurrentQuarters * 25) + (m_CurrentDimes * 10) + (m_CurrentNickels * 5);
+	requiredChange = paid - cost;
+	int remainingChange = 0;
+
+	changeQs = 0;
+	changeDs = 0;
+	changeNs = 0;
+
+	if (requiredChange > availableChange)
+	{
+		//We don't have enough change to give back.
+		result = false;
+	}
+
+	if (result)
+	{
+		//We have enough change.
+		//Need to check if we have appropriate coins.
+		changeQs = requiredChange / 25;
+		//Are there enough quarters for the change?
+		if (changeQs > m_CurrentQuarters)
+		{
+			//We don't have enough quarters for the change.
+			//Don't fail it here. Take the quarters that are available.
+			//Try the rest with dimes and nickels.
+			changeQs = m_CurrentQuarters;
+		}
+	}
+
+	if (result)
+	{
+		//There are enough quarters.
+		//Check the dimes.
+		remainingChange = requiredChange - (changeQs * 25); //or remainingChange = requiredChange % 25;
+		changeDs = remainingChange / 10;
+		//Are there enough dimes for the change?
+		if (changeDs > m_CurrentDimes)
+		{
+			//We don't have enough dimes for the change.
+			//Don't fail it here. Take the dimes that are available.
+			//Try the rest with nickels.
+			changeDs = m_CurrentDimes;
+		}
+	}
+
+	if (result)
+	{
+		//There are enough dimes.
+		//Check the nickels.
+		remainingChange = remainingChange - (changeDs * 10); //or remainingChange = remainingChange % 10;
+		changeNs = remainingChange / 5;
+		//Are there enough dimes for the change?
+		if (changeNs > m_CurrentNickels)
+		{
+			//We don't have enough nickels for the change.
+			result = false;
+		}
+	}
+
+	return (result);
+}
+
+//==============================================================================
+//Vending Machine model 100B
+//==============================================================================
+
+VENDING_MACHINE_100B::VENDING_MACHINE_100B(const char* pModel, const char* pName,
+	VENDING_MACHINE_SYSTEM* pVMS)
+	: VENDING_MACHINE(pModel, pName, pVMS)
+{
+}
+
+VENDING_MACHINE_100B::~VENDING_MACHINE_100B()
+{
+}
+
+
+bool VENDING_MACHINE_100B::ServeCustomer()
+{
+	bool result = false;
+	bool repeat = true;
+	do
+	{
+		cout << endl;
+		cout << "This machine accepts one-dollar bills or coins." << endl;
+
+		PrintAvailableSaleItems();
+
+		//Ask user to make a selection.
+		string item;
+		cout << "Select an item (enter item code or 0 to Cancel) --> ";
+		cin >> item;
+
+		//Check for "0".
+		if (item == "0")
+		{
+			//User decides to cancel the purchase from this vending machine.
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		//User entered a non-zero code.
+		//Find the VM_SALE_ITEM object based on the code.
+		VM_SALE_ITEM* pSelectedVmSaleItem = FindVmSaleItemByCode(item);
+		if (pSelectedVmSaleItem == NULL)
+		{
+			cout << "ERROR: The code you entered is invalid. Please try again." << endl;
+			continue;
+		}
+
+		//User entered a valid product item code. Check if we have enough.
+		if (pSelectedVmSaleItem->GetCurrentQuantity() < 1)
+		{
+			//No, we don't have any more.
+			cout << "Sorry, the item you selected is either unavailable or sold out." << endl;
+			cout << "Please try another item." << endl;
+			continue;
+		}
+
+		//Yes, we still have some. Get the description and price information.
+		VMS_PRODUCT_ITEM* pVmsProductItem = m_pVMS->GetVmsProducts().FindProductItemById(pSelectedVmSaleItem->GetId());
+		if (!pVmsProductItem)
+		{
+			cout << "Sorry, the item you selected cannot be found in the product inventory." << endl;
+			cout << "Please try another item." << endl;
+			continue;
+		}
+
+		cout << "You selected '" << pVmsProductItem->GetDescription() << "'." << endl;
+		cout << "The cost of this item is " << pVmsProductItem->GetPrice() << " cents." << endl;
+
+		//Get the payment.
+		int totalPayment = CollectPayment();
+		if (totalPayment == 0)
+		{
+			cout << "You chose to cancel your purchase." << endl;
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		cout << "You entered an amount of " << totalPayment << " cents." << endl;
+		cout << "Processing your purchase ..." << endl;
+
+		//Check there is enough payment.
+		if (pVmsProductItem->GetPrice() > totalPayment)
+		{
+			cout << "ERROR: You did not enter enough dollar bills." << endl;
+			//cout << "This transaction will be canceled." << endl;
+			cout << "Please take back your dollar bill(s)." << endl;
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		//Calculate change (Q, D, N) to give back.
+		int totalChange = 0;
+		int quarter = 0;
+		int dime = 0;
+		int nickel = 0;
+		bool hasEnoughChange = CalculateChange(pVmsProductItem->GetPrice(), totalPayment, totalChange, quarter, dime, nickel);
+
+		if (!hasEnoughChange)
+		{
+			cout << "Insufficient changes!" << endl;
+			cout << "Your transaction cannot be processed." << endl;
+			cout << "Please take back your dollar bill(s)." << endl;
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		cout << "Your change of " << totalChange << " cents is given as:" << endl;
+		cout << "    quarter(s) : " << quarter << endl;
+		cout << "    dime(s)    : " << dime << endl;
+		cout << "    nickel(s)  : " << nickel << endl;
+		cout << "Thank you! Please take your item." << endl;
+
+		//Update the Dollar and coins after successful transaction. //The Change Remainder
+		m_CurrentDollars += totalPayment / 100;
+
+		m_CurrentQuarters -= quarter;
+		m_CurrentDimes -= dime;
+		m_CurrentNickels -= nickel;
+
+		//Need to update the sale item quantity (reduce by 1).
+		pSelectedVmSaleItem->SetCurrentQuantity(pSelectedVmSaleItem->GetCurrentQuantity() - 1);
+
+		//Create a VM100A_REPORT_ITEM object and put it in the ReportItem vector.
+		VM100A_REPORT_ITEM* pReportItem = new VM100A_REPORT_ITEM();
+		if (pReportItem)
+		{
+			int transId = m_ReportItemArr.size() + 1;
+			pReportItem->Initialize(transId, pSelectedVmSaleItem->GetCode(), pVmsProductItem->GetPrice(), totalPayment, quarter, dime, nickel);
+			m_ReportItemArr.push_back(pReportItem);
+		}
+
+		//Exit the do...while loop to return control to the VENDING_MACHINE_SYSTEM object.
+		repeat = false;
+
+	}
+	while (repeat);
+
+	return (result);
+}
+
+void VENDING_MACHINE_100B::PrintReport(ofstream& ofsReports)
+{
+	//Print the initial information.
+	ofsReports << "====================" << endl;
+	ofsReports << "Machine: " << m_Name << endl;
+
+	//Calculate initial balance.
+	int initialBalance = (25 * m_InitialQuarters) + (10 * m_InitialDimes) + (5 * m_InitialNickels);
+	ofsReports << "Initial Balance: $" << (initialBalance / 100) << "."
+		<< setw(2) << setfill('0') << (initialBalance % 100) << setfill(' ')
+		<< " (" << m_InitialDollars << " $, " << m_InitialQuarters << " Q, "
+		<< m_InitialDimes << " D, " << m_InitialNickels << " N)" << endl;
+	ofsReports << endl;
+
+	//Print the header for the report items.
+	VM100A_REPORT_ITEM::PrintHeader(ofsReports);
+
+	//Print the report items.
+	//Collect the total along the way.
+	int totalSale = 0;
+	unsigned int i = 0;
+	if (m_ReportItemArr.size() > 0)
+	{
+		for (i = 0; i < m_ReportItemArr.size(); i++)
+		{
+			totalSale = totalSale + m_ReportItemArr[i]->GetCost();
+			m_ReportItemArr[i]->Print(ofsReports);
+		}
+	}
+	else
+	{
+		ofsReports << "There is no transaction." << endl;
+	}
+	ofsReports << endl;
+
+	//Print the total sale/cost.
+	ofsReports << "Total Cost: " << setw(9) << right << totalSale << endl;
+	ofsReports << endl;
+
+	//Print the current information.
+	//Calculate current balance.
+	int currentBalance = (100 * m_CurrentDollars) + (25 * m_CurrentQuarters) +
+		(10 * m_CurrentDimes) + (5 * m_CurrentNickels);
+	ofsReports << "Current Balance: $" << (currentBalance / 100) << "."
+		<< setw(2) << setfill('0') << (currentBalance % 100) << setfill(' ')
+		<< " (" << m_CurrentDollars << " $, " << m_CurrentQuarters << " Q, "
+		<< m_CurrentDimes << " D, " << m_CurrentNickels << " N)" << endl;
+	ofsReports << endl;
+
+	//Print the header for the sale items.
+	VM_SALE_ITEM::PrintReportHeader(ofsReports);
+
+	//Print the sale items in report format.
+	if (m_SaleItemArr.size() > 0)
+	{
+		for (i = 0; i < m_SaleItemArr.size(); i++)
+		{
+			m_SaleItemArr[i]->PrintAsReport(m_pVMS, ofsReports);
+		}
+	}
+	else
+	{
+		ofsReports << "There is no item available for sale." << endl;
+	}
+	ofsReports << endl;
+}
+
+int VENDING_MACHINE_100B::CollectPayment() // Receives the input from the user
+{
+	int choice;
+
+	int totalPayment = 0;
+
+	bool validPayment = true;
+	int oneDollar = 0;
+	do
+	{
+		validPayment = true;
+		totalPayment = 0;
+		cout << "Select an option (1 - dollar bill and 2 - coins) --> ";
+		cin >> choice;
+		//cout << "Insert your money in 100 cents amount, ending with 0." << endl;
+		//cout << "Example: 100 0<E>, or 100 100 0<E>, or 100 100 100 0<E>, etc." << endl;
+
+		if (choice == 1)
+		{
+			cout << "Insert your money --> ";
+			do
+			{
+				//oneDollar = 0;
+				cin >> oneDollar;
+				//The amount must be 100 or 0.
+				if ((oneDollar != 100) && (oneDollar != 0)) {
+					cout << "ERROR: Only one-dollar bills are accepted." << endl;
+					cout << "Please try again." << endl;
+					validPayment = false;
+					continue;
+				}
+				totalPayment += oneDollar;
+			}
+			while ((oneDollar != 0) && (validPayment != false));
+		}
+		else
+		{
+			int coins[100] = {};
+			cout << "Please insert your coins (Enter 0 to stop entering)--> ";
+			for (int i = 0; i < 100; i++ )
+			{
+				cin >> coins[i];
+				if (coins[i] == 0)
+				{
+					break;
+				}
+				totalPayment += coins[i]; //Ignores any other input of 25, 10, 5 cents
+				if ( !( (coins[i] == 25) || (coins[i] == 10) || (coins[i] == 5) ) )
+				{
+					totalPayment -= coins[i];
+				}
+			}
+			cout << "You inserted an amount of " << totalPayment << endl;
+		}
+	} while (validPayment == false);
+
+	return (totalPayment);
+}
+
+bool VENDING_MACHINE_100B::CalculateChange(int item, int payment, int& totalChange,int& quarter, int& dime, int& nickel) // Conduct function to produce change
+	{
+
+		bool result = true;
+
+		int availableChange = (m_CurrentQuarters * 25) + (m_CurrentDimes * 10) + (m_CurrentNickels * 5);
+
+		totalChange = payment - item;
+
+		if (totalChange > availableChange)
+		{
+			//We don't have enough change to give back.
+			result = false;
+		}
+
+		if (result)
+		{
+			//We have enough change.
+			//Need to check if we have appropriate coins.
+			if (m_InitialNickels == 0)
+			{
+				if(quarter * 25 != totalChange)
+		    {
+
+		      quarter -= 1;
+		      if (quarter < 0)
+		      {
+		        quarter = 0;
+		      }
+		      totalChange -= (quarter * 25);
+		    }
+		    if (quarter <= 0)
+		    {
+		      quarter = 0;
+		    }
+		    if(dime * 10 != totalChange)
+		    {
+		      dime -= 1;
+		      if (dime < 0)
+		      {
+		        quarter = 0;
+		      }
+		      totalChange -= (dime * 10);
+		    }
+		    if(dime <= 0)
+		    {
+		      dime = 0;
+		    }
+		    if(nickel * 5 != totalChange)
+		    {
+		      nickel -= 1;
+		      if (nickel < 0)
+		      {
+		        quarter = 0;
+		      }
+		      totalChange-=(nickel * 5);
+		    }
+		    if(nickel <= 0)
+		    {
+		      nickel = 0;
+		    }
+			}
+			else
+			{
+				if (quarter > 0)
+				{
+					quarter = totalChange / 25;
+					totalChange -= (quarter * 25);
+				}
+				if (quarter <= 0)
+				{
+					quarter = 0;
+				}
+				if (dime > 0)
+			  {
+			    dime = totalChange / 10;
+			    totalChange -= (dime * 10);
+			  }
+			  if (dime <= 0)
+			  {
+			   dime = 0;
+			  }
+			  if (nickel > 0)
+			  {
+			    nickel = totalChange / 5;
+			    totalChange -= (nickel * 5);
+			  }
+			  if (nickel <= 0)
+			  {
+			    nickel = 0;
+			  }
+			}
+		}
+		return (result);
+	}
+
+
+//==============================================================================
+//Vending Machine model 100C
+//==============================================================================
+VENDING_MACHINE_100C::VENDING_MACHINE_100C(const char* pModel, const char* pName,
+										   VENDING_MACHINE_SYSTEM* pVMS)
+	: VENDING_MACHINE(pModel, pName, pVMS)
+{
+}
+
+VENDING_MACHINE_100C::~VENDING_MACHINE_100C()
+{
+}
+
+bool VENDING_MACHINE_100C::ServeCustomer()
+{
+	bool result = false;
+	bool repeat = true;
+	do
+	{
+		cout << endl;
+		cout << "This machine accepts credit card only." << endl;
+
+		PrintAvailableSaleItems();
+
+		//Get user selection.
+		string selectedCode;
+		cout << "Select an item by entering the code or 0 to Cancel --> ";
+		cin >> selectedCode;
+
+		//Check for "0".
+		if (selectedCode == "0")
+		{
+			//User decides to cancel the purchase from this vending machine.
+			result = true;
+			repeat = false;
+			continue;
+		}
+
+		//User entered a non-zero code.
+		//Find the VM_SALE_ITEM object based on the code.
+		VM_SALE_ITEM* pSelectedVmSaleItem = FindVmSaleItemByCode(selectedCode);
+
+		if (pSelectedVmSaleItem == NULL)
+		{
+			cout << "ERROR: The code you entered is invalid. Please try again." << endl;
+			continue;
+		}
+
+		//User entered a valid product item code. Check if we have enough.
+		if (pSelectedVmSaleItem->GetCurrentQuantity() < 1)
+		{
+			//No, we don't have any more.
+			cout << "Sorry, the item you selected is either unavailable or sold out." << endl;
+			cout << "Please try another item." << endl;
+			continue;
+		}
+
+		//Yes, we still have some. Get the description and price information.
+		VMS_PRODUCT_ITEM* pVmsProductItem = m_pVMS->GetVmsProducts().FindProductItemById(pSelectedVmSaleItem->GetId());
+		if (!pVmsProductItem)
+		{
+			cout << "Sorry, the item you selected cannot be found in the product inventory." << endl;
+			cout << "Please try another item." << endl;
+			continue;
+		}
+
+		cout << "You selected '" << pVmsProductItem->GetDescription() << "'." << endl;
+		cout << "The cost of this item is " << pVmsProductItem->GetPrice() << " cents." << endl;
+
+		//Get Credit Card number. Allow 2 tries.
+		string strCCN;
+		bool validCCN = false;
+		const int MAX_CCN_TRIES = 2;
+		int cci = 0;
+		for (cci = 1; cci <= MAX_CCN_TRIES; cci++)
+		{
+			cout << "Enter your credit card number --> ";
+			strCCN.clear();
+			cin >> strCCN;
+			validCCN = ValidateCreditCardNumber(strCCN);
+			if (validCCN)
+			{
+				break;
+			}
+			else
+			{
+				cout << "ERROR: Invalid credit card number was entered." << endl;
+				if (cci < MAX_CCN_TRIES)
+				{
+					cout << "Please try again." << endl;
+				}
+				else
+				{
+					cout << "Maximum number of tries is exceeded." << endl;
+				}
+			}
+		}
+
+		if (!validCCN)
+		{
+			cout << "This transaction is canceled." << endl;
+			repeat = false;
+			continue;
+		}
+
+		//Inform user of successful transaction.
+		cout << "Your credit card was successfully charged for $" << (pVmsProductItem->GetPrice() / 100)
+			<< "." << setw(2) << setfill('0') << (pVmsProductItem->GetPrice() % 100) << setfill(' ') << "." << endl;
+		cout << "Thank you! Please take your item." << endl;
+
+		//Need to update the sale item quantity (reduce by 1).
+		pSelectedVmSaleItem->SetCurrentQuantity(pSelectedVmSaleItem->GetCurrentQuantity() - 1);
+
+		//Create a VM100C_REPORT_ITEM object and put it in the ReportItem vector.
+		VM100C_REPORT_ITEM* pReportItem = new VM100C_REPORT_ITEM();
+		if (pReportItem)
+		{
+			int transId = m_ReportItemArr.size() + 1;
+			string strCCNLast4 = strCCN.substr(strCCN.length() - 4);
+			pReportItem->Initialize(transId, pSelectedVmSaleItem->GetCode(), pVmsProductItem->GetPrice()
+				, pVmsProductItem->GetPrice(), strCCNLast4.c_str());
+			m_ReportItemArr.push_back(pReportItem);
+		}
+
+		//Exit the do...while loop to return control to the VENDING_MACHINE_SYSTEM object.
+		repeat = false;
+
+	} while (repeat);
+
+	return result;
+}
+
+void VENDING_MACHINE_100C::PrintReport(ofstream& ofsReports)
+{
+	//Print the initial information.
+	ofsReports << "====================" << endl;
+	ofsReports << "Machine: " << m_Name << endl;
+
+	//Calculate initial balance.
+	int initialBalance = (25 * m_InitialQuarters) + (10 * m_InitialDimes) + (5 * m_InitialNickels);
+
+	ofsReports << "Initial Balance: $" << (initialBalance / 100)
+		<< "." << setw(2) << setfill('0') << (initialBalance % 100) << setfill(' ')
+		<< " (" << m_InitialDollars << " $, " << m_InitialQuarters << " Q, "
+		<< m_InitialDimes << " D, "<< m_InitialNickels << " N)" << endl;
+
+	ofsReports << endl;
+
+	//Print the header for the report items.
+	VM100C_REPORT_ITEM::PrintHeader(ofsReports);
+
+	//Print the report items.
+	//Collect the total along the way.
+	int totalSale = 0;
+	unsigned int i = 0;
+	if (m_ReportItemArr.size() > 0)
+	{
+		for (i = 0; i < m_ReportItemArr.size(); i++)
+		{
+			totalSale = totalSale + m_ReportItemArr[i]->GetCost();
+			m_ReportItemArr[i]->Print(ofsReports);
+		}
+	}
+	else
+	{
+		ofsReports << "There is no transaction." << endl;
+	}
+	ofsReports << endl;
+
+	//Print the total sale/cost.
+	ofsReports << "Total Cost: " << setw(9) << right << totalSale << endl;
+	ofsReports << endl;
+
+	//Print the current information.
+	//Current balance is just the totalSale.
+	int currentBalance = totalSale;
+	ofsReports << "Current Balance: $" << (currentBalance / 100) << "."
+		<< setw(2) << setfill('0') << (currentBalance % 100) << setfill(' ')
+		<< " (" << m_CurrentDollars << " $, " << m_CurrentQuarters << " Q, "
+		<< m_CurrentDimes << " D, "<< m_CurrentNickels << " N)" << endl;
+	ofsReports << endl;
+
+	//Print the header for the sale items.
+	VM_SALE_ITEM::PrintReportHeader(ofsReports);
+
+	//Print the sale items in report format.
+	if (m_SaleItemArr.size() > 0)
+	{
+		for (i = 0; i < m_SaleItemArr.size(); i++)
+		{
+			m_SaleItemArr[i]->PrintAsReport(m_pVMS, ofsReports);
+		}
+	}
+	else {
+		ofsReports << "There is no item available for sale." << endl;
+	}
+	ofsReports << endl;
+}
+
+//Applies Luhn's algorithm to validate credit card number.
+bool VENDING_MACHINE_100C::ValidateCreditCardNumber(const string& strCCN)
+{
+	const int CCN_MIN_LENGTH = 13;
+	const int CCN_MAX_LENGTH = 16;
+
+	//Check the digit count.
+	int ccnLength = strCCN.length();
+	if ((ccnLength < CCN_MIN_LENGTH) || (ccnLength > CCN_MAX_LENGTH))
+	{
+		return false;
+	}
+
+	////Do we still need to check this?
+	////Must begin with '4', '5', "37", or '6'.
+	if ((strCCN[0] == '4') || (strCCN[0] == '5') || ((strCCN[0] == '3') && (strCCN[1] == '7')) || (strCCN[0] == '6'))
+	{
+		//Valid starting digit(s).
+	}
+	else
+	{
+		// Invalid starting digit(s).
+		return false;
+	}
+
+	//Every character must be numeric.
+	int i = 0;
+	for (i = 0; i < ccnLength; i++)
+	{
+		if (::isdigit(strCCN[i]) > 0)
+		{
+			//The char is a digit char.
+		}
+		else
+		{
+			//The char is NOT a digit char.
+			return false;
+		}
+	}
+
+	//Transfer to an integer array.
+	int numCCN[CCN_MAX_LENGTH];
+	i = 0;
+	for (i = 0; i < ccnLength; i++)
+	{
+		//In ASCII code, the decimal numbers '0' to '9' starts from ASCII code 48.
+		//All we need to do is:
+		//		int x = (int)digitCharacter - 48;
+		//
+		//Or more readable:
+		//		int x = digitCharacter - '0'.
+		//
+		numCCN[i] = strCCN[i] - '0';
+		// Can also use switch statement, but it takes up more space
+	}
+
+	//1. Double every second digit from right to left.
+	//Indexes to double (for 16 digits): 0, 2, 4, 6, 8, 10, 12, 14.
+	for (i = (ccnLength - 2); i >= 0; i = i - 2)
+	{
+		numCCN[i] = numCCN[i] * 2;
+		if (numCCN[i] > 9)
+		{
+			numCCN[i] = (numCCN[i] / 10) + (numCCN[i] % 10);
+		}
+	}
+
+	//2. Add all single-digit numbers from Step 1.
+	//Indexes to add (for 16 digits): 0, 2, 4, 6, 8, 10, 12, 14.
+	int sumStep1Digits = 0;
+	for (i = (ccnLength - 2); i >= 0; i = i - 2)
+	{
+		sumStep1Digits += numCCN[i];
+	}
+
+	//3. Add all digits in the odd places from right to left.
+	//Indexes to add (for 16 digits): 1, 3, 5, 7, 9, 11, 13, 15.
+	int sumOddDigitsRL = 0;
+	for (i = (ccnLength - 1); i >= 0; i = i - 2)
+	{
+		sumOddDigitsRL += numCCN[i];
+	}
+
+	//Sum the result from Step 2 and Step 3.
+	int totalSum = sumStep1Digits + sumOddDigitsRL;
+
+	//Final check.
+	if (totalSum % 10)
+	{
+		//There is a remainder. The card is invalid.
+		return false;
+	}
+
+	//No remainder. The card is valid.
+	return true;
+}

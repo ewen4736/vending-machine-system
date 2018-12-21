@@ -1,0 +1,210 @@
+#pragma once
+
+class VENDING_MACHINE_SYSTEM;
+
+//==============================================================================
+//This class represents an item for sale at a Vending Machine.
+//==============================================================================
+class VM_SALE_ITEM
+{
+public:
+	VM_SALE_ITEM(const char* pCode, int id, int quantity);
+	~VM_SALE_ITEM();
+
+	const char* GetCode() const;
+	int GetId() const;
+	int GetInitialQuantity() const;
+	int GetCurrentQuantity() const;
+	void SetCurrentQuantity(int quantity);
+
+	void PrintAsAvailable(VENDING_MACHINE_SYSTEM* pVMS);
+	static void PrintReportHeader(ofstream& ofsReports);
+	void PrintAsReport(VENDING_MACHINE_SYSTEM* pVMS, ofstream& ofsReports);
+
+private:
+	//Prevent the the following constructors from being used.
+	VM_SALE_ITEM();
+	VM_SALE_ITEM(const VM_SALE_ITEM& rhs);
+	const VM_SALE_ITEM& operator=(const VM_SALE_ITEM& rhs);
+
+private:
+	string m_Code;
+	int m_Id;
+	int m_InitialQuantity;
+	int m_CurrentQuantity;
+};
+
+
+//==============================================================================
+//Base class for a Vending Machine report item.
+//==============================================================================
+class VM_REPORT_ITEM
+{
+public:
+	virtual ~VM_REPORT_ITEM();
+
+	int GetCost() const;
+
+	virtual void Print(ofstream& ofsReports) = 0; //Implemented in the derived classes.
+
+protected:
+	//Prevent the base class from being instantiated.
+	VM_REPORT_ITEM();
+	VM_REPORT_ITEM(const VM_REPORT_ITEM& rhs);
+	const VM_REPORT_ITEM& operator=(const VM_REPORT_ITEM& rhs);
+
+protected:
+	int m_TransId;
+	string m_Code;
+	int m_Cost;
+
+	int m_Paid; //The paid amount in cents
+};
+
+
+//==============================================================================
+//This class represents a report item for a Vending Machine model 100A.
+//==============================================================================
+class VM100A_REPORT_ITEM : public VM_REPORT_ITEM
+{
+public:
+	VM100A_REPORT_ITEM();
+	~VM100A_REPORT_ITEM();
+
+	void Initialize(int transId, const char* pCode, int cost, int paid, int changeQ, int changeD, int changeN);
+	static void PrintHeader(ofstream& ofsReports); //Prints a report header for model 100A.
+	void Print(ofstream& ofsReports); //Prints a report item for model 100A.
+
+private:
+	//Prevent the the following constructors from being used.
+	VM100A_REPORT_ITEM(const VM100A_REPORT_ITEM& rhs);
+	const VM100A_REPORT_ITEM& operator=(const VM100A_REPORT_ITEM& rhs);
+
+private:
+	int m_ChangeQuarters;
+	int m_ChangeDimes;
+	int m_ChangeNickels;
+};
+
+
+//==============================================================================
+//This class represents a report item for a Vending Machine model 100C.
+//==============================================================================
+class VM100C_REPORT_ITEM : public VM_REPORT_ITEM
+{
+public:
+	VM100C_REPORT_ITEM();
+	~VM100C_REPORT_ITEM();
+
+	void Initialize(int transId, const char* pCode, int cost, int paid, const char* pCCNLast4);
+	static void PrintHeader(ofstream& ofsReports); //Prints a report header for model 100C.
+	void Print(ofstream& ofsReports); //Prints a report item for model 100C.
+
+private:
+	//Prevent the the following constructors from being used.
+	VM100C_REPORT_ITEM(const VM100C_REPORT_ITEM& rhs);
+	const VM100C_REPORT_ITEM& operator=(const VM100C_REPORT_ITEM& rhs);
+
+private:
+	string m_CCNLast4;
+};
+
+
+//==============================================================================
+//Base class for various models of Vending Machine.
+//==============================================================================
+class VENDING_MACHINE
+{
+public:
+	static VENDING_MACHINE* CreateVendingMachine(const char* pModel, int index, VENDING_MACHINE_SYSTEM* pVMS);
+
+public:
+	virtual ~VENDING_MACHINE();
+
+	const char* GetName() const;
+
+	virtual bool Initialize(ifstream& ifsMachines, int& lineNo);
+
+	virtual bool ServeCustomer() = 0;
+	virtual void PrintReport(ofstream& ofsReports) = 0;
+
+protected:
+	//Do not allow creation of base class object.
+	VENDING_MACHINE(const char* pModel, const char* pName, VENDING_MACHINE_SYSTEM* pVMS);
+	VENDING_MACHINE();
+	VENDING_MACHINE(VENDING_MACHINE& rhs);
+	VENDING_MACHINE& operator=(VENDING_MACHINE& rhs);
+
+	void PrintAvailableSaleItems();
+	VM_SALE_ITEM* FindVmSaleItemByCode(const string& code);
+
+protected:
+	string m_Model;
+	string m_Name; //Derived from combination of Model and Index.
+	VENDING_MACHINE_SYSTEM* m_pVMS; //To get info about VM_PRODUCT_ITEM objects.
+
+	//Keep initial coins for reporting purposes.
+	int m_InitialDollars;
+	int m_InitialQuarters;
+	int m_InitialDimes;
+	int m_InitialNickels;
+
+	//Available bills and coins, updated with each successful purchase.
+	int m_CurrentDollars;
+	int m_CurrentQuarters;
+	int m_CurrentDimes;
+	int m_CurrentNickels;
+
+	vector<VM_SALE_ITEM*> m_SaleItemArr;
+	vector<VM_REPORT_ITEM*> m_ReportItemArr;
+};
+
+
+//==============================================================================
+//Vending Machine model 100A
+//==============================================================================
+class VENDING_MACHINE_100A : public VENDING_MACHINE
+{
+public:
+	VENDING_MACHINE_100A(const char* pModel, const char* pName, VENDING_MACHINE_SYSTEM* pVMS);
+	~VENDING_MACHINE_100A();
+
+	bool ServeCustomer();
+	void PrintReport(ofstream& ofsReports);
+
+private:
+	//Add other private functions as needed.
+	int CollectPayment();
+	bool CalculateChange(int cost, int paid, int& requiredChange, 
+		int& changeQs, int& changeDs, int& changeNs);
+
+private:
+	//Prevent the the following constructors from being used.
+	VENDING_MACHINE_100A();
+	VENDING_MACHINE_100A(const VENDING_MACHINE_100A& rhs);
+	const VENDING_MACHINE_100A& operator=(const VENDING_MACHINE_100A& rhs);
+};
+
+
+//==============================================================================
+//Vending Machine model 100C
+//==============================================================================
+class VENDING_MACHINE_100C : public VENDING_MACHINE
+{
+public:
+	VENDING_MACHINE_100C(const char* pModel, const char* pName, VENDING_MACHINE_SYSTEM* pVMS);
+	~VENDING_MACHINE_100C();
+
+	bool ServeCustomer();
+	void PrintReport(ofstream& ofsReports);
+
+private:
+	//Add other private functions as needed.
+	bool ValidateCreditCardNumber(const string& strCCN);
+
+private:
+	//Prevent the the following constructors from being used.
+	VENDING_MACHINE_100C();
+	VENDING_MACHINE_100C(const VENDING_MACHINE_100C& rhs);
+	const VENDING_MACHINE_100C& operator=(const VENDING_MACHINE_100C& rhs);
+};

@@ -1,0 +1,57 @@
+#pragma once
+
+//==============================================================================
+//This class represents a product item carried by the Vending Machine System.
+//==============================================================================
+class VMS_PRODUCT_ITEM
+{
+public:
+	VMS_PRODUCT_ITEM(int id, int quantity, int price, const char* pDescription);
+	~VMS_PRODUCT_ITEM();
+
+public:
+	int GetId() const;
+	int GetQuantity() const;
+	int GetPrice() const;
+	const string& GetDescription() const;
+
+	void SetQuantity(int quantity);
+
+private:
+	//Prevent the the following constructors from being used.
+	VMS_PRODUCT_ITEM();
+	VMS_PRODUCT_ITEM(const VMS_PRODUCT_ITEM& rhs);
+	const VMS_PRODUCT_ITEM& operator=(const VMS_PRODUCT_ITEM& rhs);
+
+private:
+	int m_Id;
+	int m_Quantity;
+	int m_Price;
+	string m_Description;
+};
+
+
+//==============================================================================
+//This class contains the products carried by the Vending Machine System
+//==============================================================================
+class VMS_PRODUCTS
+{
+public:
+	VMS_PRODUCTS();
+	~VMS_PRODUCTS();
+
+	//Read the products file and build the product item objects.
+	bool Initialize(const char* pProductFileName);
+
+	VMS_PRODUCT_ITEM* FindProductItemById(int id);
+
+private:
+	//Prevent the the following constructors from being used.
+	VMS_PRODUCTS(const VMS_PRODUCTS& rhs);
+	const VMS_PRODUCTS& operator=(const VMS_PRODUCTS& rhs);
+
+private:
+	//Use STL map instead of STL vector for the search capabilities.
+	//vector<VMS_PRODUCT_ITEM*> m_ProductItems;
+	map<int, VMS_PRODUCT_ITEM*> m_ProductItemsMap;
+};

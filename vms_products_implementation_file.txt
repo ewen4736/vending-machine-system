@@ -1,0 +1,141 @@
+#include "stdafx.h"
+#include "vms_products.h"
+
+
+//==============================================================================
+//This class represents a product item carried by the Vending Machine System.
+//==============================================================================
+VMS_PRODUCT_ITEM::VMS_PRODUCT_ITEM(int id, int quantity, int price, const char* pDescription)
+{
+	m_Id = id;
+	m_Quantity = quantity;
+	m_Price = price;
+	m_Description = pDescription;
+}
+
+VMS_PRODUCT_ITEM::~VMS_PRODUCT_ITEM()
+{
+}
+
+int VMS_PRODUCT_ITEM::GetId() const
+{
+	return m_Id;
+}
+
+int VMS_PRODUCT_ITEM::GetPrice() const
+{
+	return m_Price;
+}
+
+int VMS_PRODUCT_ITEM::GetQuantity() const
+{
+	return m_Quantity;
+}
+
+const string& VMS_PRODUCT_ITEM::GetDescription() const
+{
+	return m_Description;
+}
+
+void VMS_PRODUCT_ITEM::SetQuantity(int quantity)
+{
+	m_Quantity = quantity;
+}
+
+
+//==============================================================================
+//This class contains the products carried by the Vending Machine System
+//==============================================================================
+VMS_PRODUCTS::VMS_PRODUCTS()
+{
+	m_ProductItemsMap.clear();
+}
+
+VMS_PRODUCTS::~VMS_PRODUCTS()
+{
+	//Delete all VMS_PRODUCT_ITEM objects in the map.
+	map<int, VMS_PRODUCT_ITEM*>::iterator itr = m_ProductItemsMap.begin();
+	while (itr != m_ProductItemsMap.end()) 
+	{
+		delete (itr->second);
+		itr++;
+	}
+
+	m_ProductItemsMap.clear();
+}
+
+//Read the products file and build the product item objects.
+bool VMS_PRODUCTS::Initialize(const char* pProductFileName)
+{
+	//Next, create and initialize all Vending Machines specified in the machines file.
+	cout << "Reading Products file [" << pProductFileName << "]..." << endl;
+	ifstream ifsProducts(pProductFileName, ios::in);
+	if (!ifsProducts.is_open()) 
+	{
+		cout << "ERROR: Cannot open Products file [" << pProductFileName << "]." << endl;
+		return (false);
+	}
+
+	int lineNo = 1;
+	bool repeat = true;
+	while (repeat) 
+	{
+		// cout << "Line " << setw(3) << right << lineNo << " --> ";
+		string strLine;
+		if (!getline(ifsProducts, strLine)) 
+		{
+			cout << "=== End of file ===" << endl;
+			repeat = false;
+			continue;
+		}
+		// cout << strLine << endl;
+		lineNo++;
+
+		int id = 0;
+		int quantity = 0;
+		int price = 0;
+		string description = "";
+		istringstream iss(strLine);
+		iss >> id;
+		iss >> quantity;
+		iss >> price;
+
+		// Do not use iss >> description, because description may include more than one word
+		// iss will only take in the first word
+	
+		//For example: If the Description field is "chocolate chips", the statement above would 
+		//only insert "chocolate".
+
+		// Instead, use getline to obtain the read of the line read and insert it into description
+		
+		iss >> ws; //Remove any whitespace before the first word.
+		getline(iss, description);
+
+		// cout << "    Creating VMS_PRODUCT_ITEM object with id=" << id << ", quantity=" << quantity << ", price=" << price << ", description=" << description << "..." << endl;
+		VMS_PRODUCT_ITEM* pProductItem = new VMS_PRODUCT_ITEM(id, quantity, price, description.c_str());
+		if (pProductItem) 
+		{
+			// cout << "    Inserting VMS_PRODUCT_ITEM object with id=" << id << " into the Product Items map..." << endl;
+			this->m_ProductItemsMap[id] = pProductItem;
+		}
+	}
+
+	ifsProducts.close();
+	// cout << "Reading Products file [" << pProductFileName << "]...Done" << endl;
+	// cout << endl;
+
+	return true;
+}
+
+VMS_PRODUCT_ITEM* VMS_PRODUCTS::FindProductItemById(int id)
+{
+	map<int, VMS_PRODUCT_ITEM*>::iterator itr = m_ProductItemsMap.find(id);
+	if (itr != m_ProductItemsMap.end()) 
+	{
+		//Item found.
+		return (itr->second);
+	}
+
+	//Item not found.
+	return NULL;
+}

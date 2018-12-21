@@ -1,0 +1,42 @@
+#pragma once
+
+
+class VMS_PRODUCTS;
+class VENDING_MACHINE;
+
+
+//==============================================================================
+//This class represents the Vending Machine System.
+//==============================================================================
+class VENDING_MACHINE_SYSTEM
+{
+public:
+	VENDING_MACHINE_SYSTEM();
+	~VENDING_MACHINE_SYSTEM();
+
+	bool Initialize(const char* pMachinesFilename, const char* pProductsFilename);
+	void Run();
+	void GenerateReportFile();
+
+	VMS_PRODUCTS& GetVmsProducts();
+
+private:
+	//Prevent the the following constructors from being used.
+	VENDING_MACHINE_SYSTEM(const VENDING_MACHINE_SYSTEM& rhs);
+	const VENDING_MACHINE_SYSTEM& operator=(const VENDING_MACHINE_SYSTEM& rhs);
+
+	bool GetValidStartupCode();
+
+private:
+	string m_MachinesFilename;
+	string m_ProductsFilename;
+
+	VMS_PRODUCTS m_VmsProducts;
+
+	//We store each VENDING_MACHINE object pointer in 2 places: vector and map.
+	//The vector allows us to retrieve the VENDING_MACHINE objects in the same order as defined 
+	//in the machines file.
+	//The map allows us to quickly search for a VENDING_MACHINE object based on the object id.
+	vector<VENDING_MACHINE*> m_VendingMachineArr;
+	map<string, VENDING_MACHINE*> m_VendingMachineMap;
+};

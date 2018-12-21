@@ -1,0 +1,264 @@
+#include "stdafx.h"
+#include "vms_products.h"
+#include "vending_machine_system.h"
+#include "vending_machine.h"
+
+
+VENDING_MACHINE_SYSTEM::VENDING_MACHINE_SYSTEM()
+{
+	m_MachinesFilename = "machines.txt";
+	m_ProductsFilename = "products.txt";
+
+	m_VendingMachineArr.clear();
+	m_VendingMachineMap.clear();
+}
+
+VENDING_MACHINE_SYSTEM::~VENDING_MACHINE_SYSTEM()
+{
+	//Delete all VENDING_MACHINE objects in the vector.
+	unsigned int vmi = 0;
+	for (vmi = 0; vmi < m_VendingMachineArr.size(); vmi++) 
+	{
+		delete (m_VendingMachineArr[vmi]);
+	}
+	m_VendingMachineArr.clear();
+
+	//The map contains the same VENDING_MACHINE objects as the vector.
+	//So there is no need to delete them since they have all been deleted.
+	//Just clear the map.
+	m_VendingMachineMap.clear();
+}
+
+bool VENDING_MACHINE_SYSTEM::Initialize(const char* pMachinesFilename, const char* pProductsFilename)
+{
+	if (pMachinesFilename) 
+	{
+		m_MachinesFilename = pMachinesFilename;
+	}
+
+	if (pProductsFilename) 
+	{
+		m_ProductsFilename = pProductsFilename;
+	}
+
+	//Get the StartupCode from user.
+	bool result = GetValidStartupCode();
+	if (!result) 
+	{
+		return false;
+	}
+
+	cout << "Initializing machines. Please wait ..." << endl;
+
+	//Fist, create and initialize all product items specified in the products file.
+	result = this->m_VmsProducts.Initialize(m_ProductsFilename.c_str());
+	if (!result) 
+	{
+		return false;
+	}
+
+	//Next, create and initialize all Vending Machines specified in the machines file.
+	cout << "Reading Machines file [" << m_MachinesFilename << "]..." << endl;
+	ifstream ifsMachines(m_MachinesFilename.c_str(), ios::in);
+	if (!ifsMachines.is_open()) 
+	{
+		cout << "ERROR: Cannot open Machines file [" << m_MachinesFilename << "]." << endl;
+		return false;
+	}
+
+	int lineNo = 1;
+	bool repeat = true;
+	while (repeat) 
+	{
+		// cout << "Line " << setw(3) << right << lineNo << " --> ";
+		string strLine;
+		if (!getline(ifsMachines, strLine)) 
+		{
+			cout << "=== End of file ===" << endl;
+			repeat = false;
+			continue;
+		}
+		// cout << strLine << endl;
+		lineNo++;
+
+		if (strLine.empty()) 
+		{
+			continue;
+		}
+
+		string vmModel;
+		int vmCount = 0;
+
+		istringstream issVM(strLine);
+		issVM >> ws;
+		issVM >> vmModel;
+		issVM >> vmCount;
+
+		int vmIndex = 1;
+		for (vmIndex = 1; vmIndex <= vmCount; vmIndex++) 
+		{
+			VENDING_MACHINE* pVendMachine = VENDING_MACHINE::CreateVendingMachine(vmModel.c_str(), vmIndex, this);
+			if (pVendMachine) 
+			{
+				string vmName = pVendMachine->GetName();
+
+				result = pVendMachine->Initialize(ifsMachines, lineNo);
+                if (result) 
+				{
+					m_VendingMachineArr.push_back(pVendMachine);
+					m_VendingMachineMap[vmName] = pVendMachine;
+				}
+				else 
+				{
+				    cout << "    ERROR: Failed to initialize VENDING_MACHINE object with name=" << vmName << "." << endl;
+                    delete (pVendMachine);
+					return false;
+				}
+			}
+			else 
+			{
+				cout << "    ERROR: Failed to create VENDING_MACHINE object with model=" << vmModel << ", index=" << vmIndex << "." << endl;
+				return false;
+			}
+		}
+	}
+
+	ifsMachines.close();
+	cout << "Reading Machines file [" << m_MachinesFilename << "]...Done" << endl;
+	cout << endl;
+
+	cout << "Machines are ready." << endl;
+
+	return true;
+}
+
+void VENDING_MACHINE_SYSTEM::Run()
+{
+	const string VMS_EXIT_CODE = "csci140";
+
+	//Build the list of available Vending Machine names.
+	string vmNameList = "";
+	unsigned int vmi = 0;
+	for (vmi = 0; vmi < m_VendingMachineArr.size(); vmi++) 
+	{
+		if (!vmNameList.empty()) 
+		{
+			vmNameList += ", ";
+		}
+		vmNameList += m_VendingMachineArr[vmi]->GetName();
+	}
+
+	bool repeat = true;
+	do 
+	{
+		//Show available vending machines by their machine names.
+		cout << "Available machines: " << vmNameList << endl;
+
+		//Ask user to select a vending machine by name.
+		string selectedVmName;
+		cout << "Select a machine --> ";
+		cin >> selectedVmName;
+
+		//Check against the special code to exit the program.
+		if (selectedVmName == VMS_EXIT_CODE) 
+		{
+			//Time to quit.
+			repeat = false;
+			continue;
+		}
+
+		//Not time to quit.
+		//Find the VENDING_MACHINE object with the machine name entered by user.
+		VENDING_MACHINE* pSelectedVM = NULL;
+		for (vmi = 0; vmi < m_VendingMachineArr.size(); vmi++) 
+		{
+			if (selectedVmName == m_VendingMachineArr[vmi]->GetName()) 
+			{
+				//Found it.
+				pSelectedVM = m_VendingMachineArr[vmi];
+				break;
+			}
+		}
+
+		bool result = false;
+		if (pSelectedVM != NULL) 
+		{
+			result = pSelectedVM->ServeCustomer();
+		}
+		else 
+		{
+			cout << "The machine you entered (" << selectedVmName << ") is not valid." << endl;
+		}
+		cout << endl;
+
+	} while (repeat);
+	cout << endl;
+}
+
+//Generate reports.txt file in the current working directory.
+void VENDING_MACHINE_SYSTEM::GenerateReportFile()
+{
+	cout << "Generating report file reports.txt in the current working directory..." << endl;
+
+	//Create the output file
+	ofstream ofsReports("reports.txt", ios::out);
+	if (!(ofsReports.is_open())) 
+	{
+		cout << "ERROR: Cannot create reports.txt file." << endl;
+		return;
+	}
+
+	unsigned int vmi = 0;
+	for (vmi = 0; vmi < m_VendingMachineArr.size(); vmi++) 
+	{
+		m_VendingMachineArr[vmi]->PrintReport(ofsReports);
+	}
+
+	ofsReports.close();
+
+	cout << "Generating report file reports.txt in the current working directory... Done" << endl;
+}
+
+VMS_PRODUCTS& VENDING_MACHINE_SYSTEM::GetVmsProducts()
+{
+	return m_VmsProducts;
+}
+
+bool VENDING_MACHINE_SYSTEM::GetValidStartupCode()
+{
+	const string VMS_VALID_STARTUP_CODE = "csci140";
+	const int MAX_TRIES = 3;
+
+	bool result = false;
+	int noTries = 0;
+	string startupCode;
+	
+	for (noTries = 0; noTries < MAX_TRIES; noTries++) 
+	{
+		startupCode.clear();
+		cout << "Please enter a startup code --> ";
+		cin >> startupCode;
+
+		//Validate the startupCode.
+		if (startupCode != VMS_VALID_STARTUP_CODE) 
+		{
+			cout << "ERROR: The startup code you entered is invalid." << endl;
+			if (noTries < (MAX_TRIES - 1)) 
+			{
+				cout << "Please try again." << endl;
+			}
+			else 
+			{
+				cout << "Maximum number of attempts exceeded." << endl;
+			}
+		}
+		else 
+		{
+			//Startup code is valid.
+			result = true;
+			break;
+		}
+	}
+
+	return result;
+}
